@@ -66,7 +66,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/venv /opt/venv
 
 # Copier le code de l’application
-COPY app/ ./app
+#COPY app/ ./app
+#COPY . .
 
 # Exposer le port FastAPI
 EXPOSE 8020
