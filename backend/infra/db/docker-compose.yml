@@ -58,4 +58,4 @@ services:
     networks:
       - atlas-network
     ports:
-      - "8010:8000"
+      - "8090:8000"
