@@ -1,6 +1,6 @@
 version: "3.9"
 
-name: atlas
+#name: atlas
 
 networks:
   atlas-network:
