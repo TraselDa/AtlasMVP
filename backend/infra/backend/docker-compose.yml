@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  backend-dev:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: atlas-backend-dev
+    env_file: ../env/backend.dev.env
+    environment:
+      - WATCHFILES_FORCE_POLLING=true
+
+    ports:
+      - "8020:8020"
+    volumes:
+      - ../../:/app
+      - /app/__pycache__
+    restart: unless-stopped
+    networks:
+      - atlas-network
+
+networks:
+  atlas-network:
+    external: true

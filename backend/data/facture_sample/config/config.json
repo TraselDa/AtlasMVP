@@ -1,0 +1,77 @@
+{
+  "version": "1.1",
+  "engine": [
+    "tesseract"
+  ],
+  "fields": {
+    "invoice_number": {
+      "type": "string",
+      "rules": [
+        {
+          "extract": "by_index",
+          "line_index": 52
+        }
+      ],
+      "post_process": [
+        "strip"
+      ]
+    },
+    "invoice_date": {
+      "type": "string",
+      "rules": [
+        {
+          "extract": "by_index",
+          "line_index": 50
+        }
+      ],
+      "post_process": [
+        "strip"
+      ]
+    },
+    "customer_address": {
+      "type": "string",
+      "field_mode": "append",
+      "rules": [
+        {
+          "extract": "by_index",
+          "line_index": 61
+        },
+        {
+          "extract": "by_index",
+          "line_index": 62
+        },
+        {
+          "extract": "by_index",
+          "line_index": 63
+        }
+      ],
+      "post_process": [
+        "normalize_spaces"
+      ]
+    },
+    "vat_amount": {
+      "type": "string",
+      "rules": [
+        {
+          "extract": "by_index",
+          "line_index": 44
+        }
+      ],
+      "post_process": [
+        "strip"
+      ]
+    },
+    "amount_before_vat": {
+      "type": "string",
+      "rules": [
+        {
+          "extract": "by_index",
+          "line_index": 41
+        }
+      ],
+      "post_process": [
+        "strip"
+      ]
+    }
+  }
+}

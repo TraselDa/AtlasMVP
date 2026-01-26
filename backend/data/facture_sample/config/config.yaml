@@ -1,0 +1,68 @@
+version: "1.0"
+
+document:
+  type: invoice
+  provider: bouygues_telecom
+  language: fr
+
+engine:
+  - tesseract
+
+fields:
+  invoice_number:
+    label: Numéro de facture
+    type: string
+    rules:
+      - match: contains
+        value: "N° de facture"
+      - extract: after
+        value: "N° de facture"
+    post_process:
+      - strip
+
+  invoice_date:
+    label: Date de facture
+    type: date
+    format: DD/MM/YYYY
+    rules:
+      - match: starts_with
+        value: "Date de facture"
+      - extract: after
+        value: "Date de facture"
+
+  phone_number:
+    label: Numéro de ligne
+    type: string
+    rules:
+      - match: contains
+        value: "N° de ligne"
+      - extract: after
+        value: "N° de ligne"
+    post_process:
+      - strip_spaces
+
+  customer_address:
+    label: Adresse client
+    type: string
+    rules:
+      - match: contains
+        value: "TRAORE"
+      - extract: line_offset
+        start: 0
+        count: 3
+    post_process:
+      - join_lines
+
+  amount_subject_to_vat:
+    label: Montant soumis à TVA
+    type: object
+    rules:
+      - match: starts_with
+        value: "Montant de la facture soumis à TVA"
+      - extract: take_last_tokens
+        count: 2
+    mapping:
+      ht: 0
+      ttc: 1
+    post_process:
+      - comma_to_float
