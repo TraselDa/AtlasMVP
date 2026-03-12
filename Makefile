@@ -23,6 +23,8 @@ BACKEND_COMPOSE_DEV = -f backend/infra/backend/docker-compose-dev.yml
 BACKEND_COMPOSE_QA = -f backend/infra/backend/docker-compose-qa.yml
 BACKEND_COMPOSE_PROD = -f backend/infra/backend/docker-compose-prod.yml
 
+DB_COMPOSE = -f backend/infra/db/docker-compose.yml
+
 LLM_COMPOSE_DEV = -f llm_core/docker-compose-dev.yml
 LLM_COMPOSE_QA = -f llm_core/docker-compose-qa.yml
 LLM_COMPOSE_PROD = -f llm_core/docker-compose-prod.yml
@@ -42,6 +44,7 @@ help: ## Affiche cette aide
 	@echo "$(YELLOW)stop$(NC)                 Arrête tous les conteneurs"
 	@echo ""
 	@echo "$(BLUE)=== Services individuels ===$(NC)"
+	@echo "$(YELLOW)db-up$(NC)                Infrastructure DB (Mongo, MinIO, Chroma)"
 	@echo "$(YELLOW)backend-dev$(NC)          Backend DEV uniquement"
 	@echo "$(YELLOW)llm-dev$(NC)              LLM Core DEV uniquement"
 	@echo ""
@@ -79,6 +82,7 @@ secrets-clean: ## Supprime les fichiers .env en clair
 
 dev: secrets-decrypt network ## Démarre l'environnement DEV complet
 	@echo "$(GREEN)Démarrage de l'environnement DEV...$(NC)"
+	@make db-up
 	@make backend-dev
 	@make llm-dev
 	@echo ""
@@ -88,6 +92,7 @@ dev: secrets-decrypt network ## Démarre l'environnement DEV complet
 
 qa: secrets-decrypt network ## Démarre l'environnement QA complet
 	@echo "$(GREEN)Démarrage de l'environnement QA...$(NC)"
+	@make db-up
 	@make backend-qa
 	@make llm-qa
 	@echo ""
@@ -95,6 +100,7 @@ qa: secrets-decrypt network ## Démarre l'environnement QA complet
 
 prod: secrets-decrypt network ## Démarre l'environnement PROD complet
 	@echo "$(GREEN)Démarrage de l'environnement PROD...$(NC)"
+	@make db-up
 	@make backend-prod
 	@make llm-prod
 	@echo ""
@@ -102,6 +108,7 @@ prod: secrets-decrypt network ## Démarre l'environnement PROD complet
 
 stop: ## Arrête tous les conteneurs
 	@echo "$(YELLOW)Arrêt de tous les conteneurs...$(NC)"
+	-docker compose $(DB_COMPOSE) down 2>/dev/null
 	-docker compose $(BACKEND_COMPOSE_DEV) down 2>/dev/null
 	-docker compose $(BACKEND_COMPOSE_QA) down 2>/dev/null
 	-docker compose $(BACKEND_COMPOSE_PROD) down 2>/dev/null
@@ -113,6 +120,14 @@ stop: ## Arrête tous les conteneurs
 # ===========================================
 # Services individuels
 # ===========================================
+
+# Base de données & Infra
+db-up: ## Démarre l'infrastructure DB
+	@echo "$(GREEN)Démarrage de l'infrastructure DB...$(NC)"
+	docker compose $(DB_COMPOSE) up -d
+
+db-down: ## Arrête l'infrastructure DB
+	-docker compose $(DB_COMPOSE) down 2>/dev/null
 
 # Backend
 backend-dev: ## Démarre le backend DEV
@@ -167,6 +182,7 @@ network: ## Crée le réseau Docker atlas-net
 
 clean: stop ## Arrête et supprime tous les conteneurs et volumes
 	@echo "$(RED)Nettoyage complet...$(NC)"
+	-docker compose $(DB_COMPOSE) down -v 2>/dev/null
 	-docker compose $(BACKEND_COMPOSE_DEV) down -v 2>/dev/null
 	-docker compose $(LLM_COMPOSE_DEV) down -v 2>/dev/null
 	@echo "$(GREEN)Nettoyage terminé.$(NC)"
