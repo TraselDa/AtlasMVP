@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+.env
+.taffolio_llm
+# ML / data
+models
+checkpoints
+data
+datasets
+.cache
+.huggingface
+torch_cache
+
+# IDE
+.vscode
+.idea
+
+# Logs
+*.log

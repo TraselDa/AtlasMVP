@@ -844,7 +844,8 @@ class DocumentService:
             async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=2.0)) as client:
                 response = await client.post(
                     f"{settings.LLM_API_URL}/chat/rag",
-                    json=payload
+                    json=payload,
+                    headers={"X-API-Key": settings.LLM_API_KEY}
                 )
                 response.raise_for_status()
                 llm_analysis = response.json()

@@ -1,0 +1,7 @@
+.DS_Store
+__pycache__/
+*.env
+.secrets-key
+backend.dev.env
+backend.qa.env
+backend.prod.env

@@ -1,0 +1,26 @@
+version: '3.9'
+
+networks:
+  atlas-net:
+    external: true
+
+services:
+  atlas-llm-core:
+    build: .
+    container_name: atlas-llm-core-qa
+    env_file: backend.qa.env
+    environment:
+      - WATCHFILES_FORCE_POLLING=true
+    volumes:
+      - ./:/app
+      - ./models:/app/models
+    ports:
+      - "8031:8030"
+    restart: unless-stopped
+    networks:
+      - atlas-net
+    #deploy:
+    #  resources:
+    #    limits:
+    #      cpus: '16'
+    #      memory: 24G

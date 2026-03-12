@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     LLM_API_URL: str 
+    LLM_API_KEY: str
 
     @validator("CORS_ORIGINS", pre=True)
     def parse_cors_origins(cls, v):

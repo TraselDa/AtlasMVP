@@ -17,8 +17,8 @@ services:
       - /app/__pycache__
     restart: unless-stopped
     networks:
-      - atlas-network
+      - atlas-net
 
 networks:
-  atlas-network:
+  atlas-net:
     external: true
