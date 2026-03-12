@@ -1,9 +1,5 @@
-version: "3.9"
-
-#name: atlas
-
 networks:
-  atlas-network:
+  atlas-net:
     external: true
 
 volumes:
@@ -28,7 +24,7 @@ services:
       - atlas_mongo_backup:/backups
       - ./init-mongo.js:/docker-entrypoint-initdb.d/init.js
     networks:
-      - atlas-network
+      - atlas-net
     ports:
       - "27027:27017"  # Mongo écoute en interne sur 27017 (best practice)
 
@@ -44,7 +40,7 @@ services:
       - atlas_miniodata:/data
       - atlas_minio_backup:/backup
     networks:
-      - atlas-network
+      - atlas-net
     ports:
       - "9010:9000"   # MinIO API
       - "9011:9001"   # MinIO console web
@@ -56,6 +52,6 @@ services:
     volumes:
       - atlas_chromadb_data:/chromadb
     networks:
-      - atlas-network
+      - atlas-net
     ports:
       - "8090:8000"
