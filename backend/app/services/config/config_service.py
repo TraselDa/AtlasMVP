@@ -3,6 +3,7 @@ import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from fastapi import UploadFile
+import httpx
 
 from app.services.minio.minio_service import minio_service
 from app.services.document.document_type_service import DocumentTypeService
@@ -10,6 +11,7 @@ from app.core_engine.ocr_engine.ocr_adapter import OCRAdapter
 from app.core_engine.normalization.document_normalizer import DocumentNormalizer
 from app.mongodb.mongodb import mongodb_manager
 from app.utils.slug_utils import slug_service
+from app.settings.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -309,4 +311,91 @@ class ConfigService:
             
         except Exception as e:
             logger.error(f"Erreur suppression config: {e}")
+            raise
+
+    @staticmethod
+    async def auto_generate_config(
+        document_type_slug: str,
+        fields_to_extract: List[Dict[str, Any]],
+        config_type: str = "pdf_scanned",
+        auto_save: bool = False
+    ) -> Dict[str, Any]:
+        """Génère automatiquement une config d'extraction via le LLM.
+
+        1. Récupère les documents normalisés depuis MinIO
+        2. Envoie au llm_core /chat/generate-config
+        3. Optionnellement sauvegarde la config générée
+        """
+        try:
+            # Récupérer les documents normalisés complets
+            prefix = f"config/{document_type_slug}/normalized_init/"
+            files = await minio_service.list_objects_with_prefix(prefix)
+
+            if not files:
+                raise ValueError(
+                    f"Aucun document normalisé trouvé pour {document_type_slug}. "
+                    "Lancez d'abord build-config."
+                )
+
+            normalized_documents = []
+            for file_path in files:
+                try:
+                    file_content = await minio_service.read_file(file_path)
+                    normalized_data = json.loads(file_content.decode('utf-8'))
+                    normalized_documents.append({
+                        "file_name": file_path.split('/')[-1],
+                        "normalized_lines": normalized_data.get("lines", [])
+                    })
+                except Exception as e:
+                    logger.warning(f"Impossible de lire {file_path}: {e}")
+
+            if not normalized_documents:
+                raise ValueError("Aucun document normalisé n'a pu être lu")
+
+            # Appel au llm_core
+            payload = {
+                "normalized_documents": normalized_documents,
+                "fields_to_extract": fields_to_extract
+            }
+
+            async with httpx.AsyncClient(timeout=httpx.Timeout(130.0, connect=5.0)) as client:
+                response = await client.post(
+                    f"{settings.LLM_API_URL}/chat/generate-config",
+                    json=payload,
+                    headers={"X-API-Key": settings.LLM_API_KEY}
+                )
+                response.raise_for_status()
+                result = response.json()
+
+            config_data = result.get("config_data")
+            if not config_data:
+                raise ValueError("Le LLM n'a pas retourné de config valide")
+
+            # Sauvegarde automatique si demandé
+            if auto_save:
+                save_result = await ConfigService.upload_config(
+                    document_type_slug,
+                    config_type,
+                    config_data
+                )
+                return {
+                    "status": "generated_and_saved",
+                    "document_type_slug": document_type_slug,
+                    "config_type": config_type,
+                    "config_data": config_data,
+                    "save_result": save_result
+                }
+
+            return {
+                "status": "generated",
+                "document_type_slug": document_type_slug,
+                "config_type": config_type,
+                "config_data": config_data
+            }
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Erreur LLM Core ({e.response.status_code}): {e.response.text}")
+            raise ValueError(f"Erreur du service LLM: {e.response.text}")
+        except Exception as e:
+            logger.error(f"Erreur génération auto config: {e}")
             raise

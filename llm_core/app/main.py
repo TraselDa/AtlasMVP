@@ -18,7 +18,7 @@ from app.core.config import settings
 from app.telemetry import init_telemetry, OTelTraceMiddleware
 from app.middleware.api_key import LLMAPIKeyMiddleware
 
-from app.api import rag_router
+from app.api import rag_router, generate_config_router
 
 # Initialize OpenTelemetry before anything else
 init_telemetry()
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
 
     # Routers
     app.include_router(rag_router)
+    app.include_router(generate_config_router)
 
     @app.get("/health")
     async def health():

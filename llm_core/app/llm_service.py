@@ -53,6 +53,30 @@ async def rerank_candidate(prompt: str) -> str:
     
 
 
+async def generate_config_chat(system_prompt: str, full_prompt: str) -> str:
+    """
+    Appel API dédié à la génération de config JSON.
+    Température basse pour un output structuré et déterministe.
+    Max tokens plus élevé car les configs peuvent être longues.
+    """
+    try:
+        response = await client.chat.completions.create(
+            model=settings.LLM_MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": full_prompt}
+            ],
+            temperature=0.1,
+            max_tokens=4000
+        )
+
+        answer = response.choices[0].message.content.strip()
+        return answer
+    except Exception as e:
+        print(f"❌ Erreur OpenRouter (generate_config): {e}")
+        raise e
+
+
 async def chat(system_prompt: str, full_prompt: str) -> str:
     """
     Appel API asynchrone vers OpenRouter.

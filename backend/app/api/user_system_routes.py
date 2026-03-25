@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Query, Body
 from typing import List, Dict, Any
 
 from app.schemas.document_type import DocumentTypeCreateRequest, DocumentTypeResponse
-from app.schemas.config import ConfigUpload, BuildConfigRequest, DocumentMetadata
+from app.schemas.config import ConfigUpload, BuildConfigRequest, DocumentMetadata, AutoGenerateConfigRequest
 from app.schemas.document import (
     VectorSearchRequest, VectorSearchResponse, PaginatedDocumentsResponse
 )
@@ -97,6 +97,19 @@ async def upload_config(
 async def get_config(document_type_slug: str, config_type: str):
     """Récupère une configuration"""
     return await ConfigService.get_config_by_type(document_type_slug, config_type)
+
+@router.post("/document-types/{document_type_slug}/auto-generate-config")
+async def auto_generate_config(
+    document_type_slug: str,
+    request: AutoGenerateConfigRequest
+):
+    """Génère automatiquement une configuration d'extraction via LLM"""
+    return await ConfigService.auto_generate_config(
+        document_type_slug,
+        fields_to_extract=[f.dict() for f in request.fields_to_extract],
+        config_type=request.config_type,
+        auto_save=request.auto_save
+    )
 
 @router.delete("/document-types/{document_type_slug}/configs/{config_type}")
 async def delete_config(document_type_slug: str, config_type: str):

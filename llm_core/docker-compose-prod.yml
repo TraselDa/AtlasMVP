@@ -1,4 +1,3 @@
-
 networks:
   atlas-net:
     external: true
@@ -14,7 +13,7 @@ services:
       - ./:/app
       - ./models:/app/models
     ports:
-      - "8031:8030"
+      - "8030:8030"
     restart: unless-stopped
     networks:
       - atlas-net
