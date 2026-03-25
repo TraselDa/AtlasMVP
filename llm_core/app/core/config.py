@@ -24,6 +24,7 @@ class LLMSettings(BaseSettings):
     # OpenRouter
     OPENROUTER_API_KEY: str = ""
     LLM_MODEL_NAME: str = "google/gemma-3n-e4b-it"
+    LLM_CONFIG_MODEL_NAME: str = "google/gemini-2.5-flash-lite"
 
     # API Security (CORS en str brut, split via property)
     LLM_CORS_ORIGINS: str = "https://dev.slim-engine.com"

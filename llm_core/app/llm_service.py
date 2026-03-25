@@ -69,7 +69,7 @@ async def generate_config_chat(system_prompt: str, full_prompt: str) -> str:
         )
 
         response = await client.chat.completions.create(
-            model=settings.LLM_MODEL_NAME,
+            model=settings.LLM_CONFIG_MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": full_prompt}
@@ -135,7 +135,7 @@ async def generate_config_chat(system_prompt: str, full_prompt: str) -> str:
             raise ValueError(
                 f"Le LLM n'a retourné aucun contenu "
                 f"(finish_reason={choice.finish_reason}). "
-                f"Le modèle {settings.LLM_MODEL_NAME} ne semble pas "
+                f"Le modèle {settings.LLM_CONFIG_MODEL_NAME} ne semble pas "
                 f"produire de réponse pour cette requête."
             )
         return content.strip()
