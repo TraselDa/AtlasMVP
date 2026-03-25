@@ -44,7 +44,10 @@ async def rerank_candidate(prompt: str) -> str:
                 "X-Title": "CV Reranker",
             }
         )
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        if content is None:
+            raise ValueError("Le LLM n'a retourné aucun contenu (rerank).")
+        return content.strip()
 
     except Exception as e:
         print(f"❌ Erreur OpenRouter: {e}")
@@ -60,6 +63,11 @@ async def generate_config_chat(system_prompt: str, full_prompt: str) -> str:
     Max tokens plus élevé car les configs peuvent être longues.
     """
     try:
+        logger.info(
+            "generate_config_chat: prompt system=%d chars, user=%d chars",
+            len(system_prompt), len(full_prompt),
+        )
+
         response = await client.chat.completions.create(
             model=settings.LLM_MODEL_NAME,
             messages=[
@@ -70,8 +78,37 @@ async def generate_config_chat(system_prompt: str, full_prompt: str) -> str:
             max_tokens=4000
         )
 
-        answer = response.choices[0].message.content.strip()
-        return answer
+        # Log détaillé de la réponse OpenRouter
+        choice = response.choices[0] if response.choices else None
+        logger.info(
+            "OpenRouter response: model=%s, finish_reason=%s, usage=%s",
+            getattr(response, 'model', 'N/A'),
+            getattr(choice, 'finish_reason', 'N/A') if choice else 'no_choices',
+            getattr(response, 'usage', 'N/A'),
+        )
+
+        if not choice:
+            logger.error("OpenRouter n'a retourné aucun choice. Response: %s", response)
+            raise ValueError("OpenRouter n'a retourné aucun choice dans la réponse.")
+
+        content = choice.message.content
+        refusal = getattr(choice.message, 'refusal', None)
+
+        if refusal:
+            logger.error("OpenRouter a refusé la requête: %s", refusal)
+            raise ValueError(f"Le LLM a refusé la requête: {refusal}")
+
+        if content is None:
+            logger.error(
+                "OpenRouter content=None. finish_reason=%s, refusal=%s, model=%s",
+                choice.finish_reason, refusal, settings.LLM_MODEL_NAME,
+            )
+            raise ValueError(
+                f"Le LLM n'a retourné aucun contenu "
+                f"(finish_reason={choice.finish_reason}). "
+                f"Vérifiez la clé API et le modèle."
+            )
+        return content.strip()
     except Exception as e:
         print(f"❌ Erreur OpenRouter (generate_config): {e}")
         raise e
@@ -93,8 +130,10 @@ async def chat(system_prompt: str, full_prompt: str) -> str:
             max_tokens=1000 
         )
         
-        answer = response.choices[0].message.content.strip()
-        return answer
+        content = response.choices[0].message.content
+        if content is None:
+            raise ValueError("Le LLM n'a retourné aucun contenu (chat).")
+        return content.strip()
     except Exception as e:
         print(f"❌ Erreur OpenRouter: {e}")
         # En prod, vous pourriez vouloir retenter (retry) ou loguer l'erreur
