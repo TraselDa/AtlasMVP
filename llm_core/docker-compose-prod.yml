@@ -13,7 +13,7 @@ services:
       - ./:/app
       - ./models:/app/models
     ports:
-      - "8030:8030"
+      - "8035:8030"
     restart: unless-stopped
     networks:
       - atlas-net
