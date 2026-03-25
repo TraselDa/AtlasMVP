@@ -5,3 +5,4 @@ __pycache__/
 backend.dev.env
 backend.qa.env
 backend.prod.env
+documents/
