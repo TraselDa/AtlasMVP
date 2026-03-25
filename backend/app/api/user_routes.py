@@ -82,7 +82,15 @@ async def filter_documents(
         filter_request.limit
     )
 
-@router.get("/documents/{document_type_slug}/{document_slug}")
+@router.get("/documents/{document_type_slug}/{document_slug}", response_model=DocumentResponse)
+async def get_document_by_slug(
+    document_type_slug: str,
+    document_slug: str
+):
+    """Récupère un document par son slug"""
+    return await DocumentService.get_document_by_slug(document_type_slug, document_slug)
+
+@router.get("/documents/{document_type_slug}/{document_slug}/file")
 async def get_document_file(
     document_type_slug: str,
     document_slug: str

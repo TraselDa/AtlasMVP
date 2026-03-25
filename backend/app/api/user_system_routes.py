@@ -123,7 +123,7 @@ async def delete_config(document_type_slug: str, config_type: str):
     """Supprime une configuration"""
     return await ConfigService.delete_config(document_type_slug, config_type)
 
-@router.get("/test/{document_type_slug}/documents/{document_slug}")
+@router.get("/test/{document_type_slug}/documents/{document_slug}/file")
 async def test_get_document_file(
     document_type_slug: str,
     document_slug: str
