@@ -109,6 +109,13 @@ class VectorSearchResponse(BaseModel):
     document_type_slug: str
     total_matches: int
 
+class AskDocumentsResponse(BaseModel):
+    answer: str
+    sources: List[str] = []
+    mode: Optional[str] = None
+    vector_results: Optional[List[Dict[str, Any]]] = None
+    error: Optional[str] = None
+
 class ProcessResult(BaseModel):
     filename: str
     status: str

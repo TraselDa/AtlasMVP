@@ -9,7 +9,7 @@ from app.schemas.document import (
     PaginatedDocumentsResponse,
     DocumentFilterRequest,
     VectorSearchRequest,
-    VectorSearchResponse,
+    AskDocumentsResponse,
     BatchProcessResponse,
     DocumentResponse,
     DocumentDeleteResponse,
@@ -117,7 +117,7 @@ async def get_document_file(
         logger.error(f"Erreur MinIO pour {document.minio_path}: {e}")
         raise HTTPException(status_code=404, detail="Fichier non trouvé dans le stockage")
 
-@router.post("/documents/{document_type_slug}/search", response_model=VectorSearchResponse)
+@router.post("/documents/{document_type_slug}/search", response_model=AskDocumentsResponse)
 async def vector_search(
     document_type_slug: str,
     search_request: VectorSearchRequest
