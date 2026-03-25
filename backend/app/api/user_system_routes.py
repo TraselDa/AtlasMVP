@@ -1,5 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, Query, Body
+from fastapi import APIRouter, UploadFile, File, Query, Body, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import List, Dict, Any
+import mimetypes
+import logging
+from minio.error import S3Error
 
 from app.schemas.document_type import DocumentTypeCreateRequest, DocumentTypeResponse
 from app.schemas.config import ConfigUpload, BuildConfigRequest, DocumentMetadata, AutoGenerateConfigRequest
@@ -9,6 +13,9 @@ from app.schemas.document import (
 from app.services.document.document_type_service import DocumentTypeService
 from app.services.config.config_service import ConfigService
 from app.services.document.document_services import DocumentService
+from app.services.minio.minio_service import minio_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/user-systems", tags=["user-systems"])
 
@@ -115,6 +122,33 @@ async def auto_generate_config(
 async def delete_config(document_type_slug: str, config_type: str):
     """Supprime une configuration"""
     return await ConfigService.delete_config(document_type_slug, config_type)
+
+@router.get("/test/{document_type_slug}/documents/{document_slug}")
+async def test_get_document_file(
+    document_type_slug: str,
+    document_slug: str
+):
+    """Sert le fichier d'un document depuis MinIO (admin)"""
+    document = await DocumentService.get_document_by_slug(document_type_slug, document_slug)
+
+    if not document.minio_path:
+        raise HTTPException(status_code=404, detail="Fichier non trouvé pour ce document")
+
+    try:
+        response = minio_service.client.get_object(
+            minio_service.bucket_name, document.minio_path
+        )
+        content_type = mimetypes.guess_type(document.minio_path)[0] or "application/octet-stream"
+        filename = document.minio_path.split("/")[-1]
+
+        return StreamingResponse(
+            response,
+            media_type=content_type,
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+    except S3Error as e:
+        logger.error(f"Erreur MinIO pour {document.minio_path}: {e}")
+        raise HTTPException(status_code=404, detail="Fichier non trouvé dans le stockage")
 
 # Routes de test (héritées du service user)
 @router.post("/test/{document_type_slug}/upload")

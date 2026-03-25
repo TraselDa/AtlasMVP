@@ -1,5 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, Query, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import List
+import mimetypes
+import logging
+from minio.error import S3Error
 
 from app.schemas.document import (
     PaginatedDocumentsResponse,
@@ -18,6 +22,9 @@ from app.schemas.document_type import (
 )
 from app.services.document.document_services import DocumentService
 from app.services.document.document_type_service import DocumentTypeService
+from app.services.minio.minio_service import minio_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -75,13 +82,32 @@ async def filter_documents(
         filter_request.limit
     )
 
-@router.get("/documents/{document_type_slug}/{document_slug}", response_model=DocumentResponse)
-async def get_document_by_slug(
+@router.get("/documents/{document_type_slug}/{document_slug}")
+async def get_document_file(
     document_type_slug: str,
     document_slug: str
 ):
-    """Récupère un document par son slug"""
-    return await DocumentService.get_document_by_slug(document_type_slug, document_slug)
+    """Sert le fichier d'un document depuis MinIO"""
+    document = await DocumentService.get_document_by_slug(document_type_slug, document_slug)
+
+    if not document.minio_path:
+        raise HTTPException(status_code=404, detail="Fichier non trouvé pour ce document")
+
+    try:
+        response = minio_service.client.get_object(
+            minio_service.bucket_name, document.minio_path
+        )
+        content_type = mimetypes.guess_type(document.minio_path)[0] or "application/octet-stream"
+        filename = document.minio_path.split("/")[-1]
+
+        return StreamingResponse(
+            response,
+            media_type=content_type,
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+    except S3Error as e:
+        logger.error(f"Erreur MinIO pour {document.minio_path}: {e}")
+        raise HTTPException(status_code=404, detail="Fichier non trouvé dans le stockage")
 
 @router.post("/documents/{document_type_slug}/search", response_model=VectorSearchResponse)
 async def vector_search(

@@ -131,8 +131,9 @@ DESIGN RULES FOR CONFIG GENERATION
 - extract rules with preconditions MUST NOT be first
 - field_mode "append" MUST be used only when multiple rules contribute to one field
 - field_mode MUST be omitted when default replace behavior is sufficient
-- Prefer semantic matching (match + extract) when labels exist
-- Use by_index ONLY when document structure is stable or labels are absent
+- Prefer by_index with token_slice when you can identify the exact line and tokens containing the value — this is the most reliable method since you have the full normalized document with indices
+- Use semantic matching (match + extract after) as a fallback when the value could appear at varying positions across documents
+- When using match + extract after, ALWAYS copy the exact text (with accents) from the document lines
 - Use token_slice to exclude noise tokens (IDs, account numbers, labels)
 - Never rely on regex or keywords not supported by the engine
 - Never infer missing data
@@ -171,6 +172,8 @@ Example 3 - Amount with comma_to_float:
   "mapping": {"ht": 0, "ttc": 1},
   "post_process": ["comma_to_float"]
 }
+
+CRITICAL: When writing "value" strings in match and extract rules, you MUST copy the EXACT text from the normalized document lines (preserving accents, diacritics, casing, and special characters). For example, if the document contains "Référence :", you must write "Référence :" — NOT "Reference :". The engine compares values using lowercased text without accent normalization, so accents must match exactly.
 
 IMPORTANT: Your output MUST be a single valid JSON object matching the configuration format. No explanations, no comments, no markdown, no extra text. Just the JSON."""
 
