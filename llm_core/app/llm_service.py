@@ -80,33 +80,63 @@ async def generate_config_chat(system_prompt: str, full_prompt: str) -> str:
 
         # Log détaillé de la réponse OpenRouter
         choice = response.choices[0] if response.choices else None
-        logger.info(
-            "OpenRouter response: model=%s, finish_reason=%s, usage=%s",
-            getattr(response, 'model', 'N/A'),
-            getattr(choice, 'finish_reason', 'N/A') if choice else 'no_choices',
-            getattr(response, 'usage', 'N/A'),
-        )
-
         if not choice:
             logger.error("OpenRouter n'a retourné aucun choice. Response: %s", response)
             raise ValueError("OpenRouter n'a retourné aucun choice dans la réponse.")
 
-        content = choice.message.content
-        refusal = getattr(choice.message, 'refusal', None)
+        # Dump complet du message pour diagnostic
+        msg = choice.message
+        logger.info(
+            "OpenRouter response: model=%s, finish_reason=%s, "
+            "content_type=%s, content_len=%s, reasoning_type=%s, "
+            "message_fields=%s",
+            getattr(response, 'model', 'N/A'),
+            choice.finish_reason,
+            type(msg.content).__name__,
+            len(msg.content) if msg.content else 0,
+            type(getattr(msg, 'reasoning', None)).__name__,
+            list(msg.model_dump().keys()) if hasattr(msg, 'model_dump') else dir(msg),
+        )
+
+        content = msg.content
+        refusal = getattr(msg, 'refusal', None)
 
         if refusal:
             logger.error("OpenRouter a refusé la requête: %s", refusal)
             raise ValueError(f"Le LLM a refusé la requête: {refusal}")
 
+        # Gemma 3n (thinking model) peut mettre sa réponse dans 'reasoning'
         if content is None:
-            logger.error(
-                "OpenRouter content=None. finish_reason=%s, refusal=%s, model=%s",
-                choice.finish_reason, refusal, settings.LLM_MODEL_NAME,
+            reasoning = getattr(msg, 'reasoning', None)
+            # Aussi vérifier model_extra pour les champs non-standard
+            extra = getattr(msg, 'model_extra', {}) or {}
+            reasoning_extra = extra.get('reasoning') or extra.get('reasoning_content')
+
+            logger.warning(
+                "content=None, checking fallbacks: reasoning=%s, "
+                "model_extra_keys=%s, finish_reason=%s",
+                type(reasoning).__name__ if reasoning else None,
+                list(extra.keys()) if extra else [],
+                choice.finish_reason,
             )
+
+            fallback = reasoning or reasoning_extra
+            if fallback and isinstance(fallback, str):
+                logger.info("Utilisation du champ reasoning comme fallback (%d chars)", len(fallback))
+                return fallback.strip()
+
+            # Log le dump complet pour investigation
+            try:
+                raw_dump = msg.model_dump() if hasattr(msg, 'model_dump') else str(msg)
+                logger.error("Message complet (dump): %s", raw_dump)
+            except Exception:
+                logger.error("Message (repr): %r", msg)
+
             raise ValueError(
                 f"Le LLM n'a retourné aucun contenu "
                 f"(finish_reason={choice.finish_reason}). "
-                f"Vérifiez la clé API et le modèle."
+                f"Le modèle {settings.LLM_MODEL_NAME} ne semble pas "
+                f"produire de réponse pour cette requête."
             )
         return content.strip()
     except Exception as e:
